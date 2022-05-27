@@ -3,10 +3,14 @@ package co.com.sofka.calendar.services;
 import co.com.sofka.calendar.collections.Program;
 import co.com.sofka.calendar.model.ProgramDate;
 import co.com.sofka.calendar.repositories.ProgramRepository;
+import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,19 +28,28 @@ public class SchedulerService {
     private ProgramRepository programRepository;
 
     //TODO: deben retornar un flux de programDate Flux<ProgramDate>
-    public List<ProgramDate> generateCalendar(String programId, LocalDate startDate) {
+    public Flux<ProgramDate>/*List<ProgramDate>*/ generateCalendar(String programId, LocalDate startDate) {
         var endDate = new AtomicReference<>(LocalDate.from(startDate));
         final AtomicInteger[] pivot = {new AtomicInteger()};
         final int[] index = {0};
 
         //TODO: debe pasarlo a reactivo, no puede trabaja elementos bloqueantes
         //TODO: trabajar el map reactivo y no deben colectar
-        var program = programRepository.findById(programId).block();
+        //var program = programRepository.findById(programId).block();
+        var program = (programRepository.findById(programId));
+        return program.flatMapMany(m-> Flux.fromStream(getDurationOf(m)))
+                //Que hace FlatMapMany? Transformamos el item del mono a un publisher, luego manda estas emisiones al flux que devolveremos.
+                //fromStream que hace? Crea un flux que emite los items contenidos en un Stream creado por el publisher dado para cada subscripcion.
+                .switchIfEmpty(Mono.error(new RuntimeException("El programa académico no existe")))
+                .map(m -> toProgramDate(startDate, endDate, pivot[0], index).apply(""));
+
+
+        /*var program = programRepository.findById(programId).block();
         return Optional.ofNullable(program)
                 .map(this::getDurationOf)
                 .orElseThrow(() -> new RuntimeException("El programa academnico no existe"))
                 .map(toProgramDate(startDate, endDate, pivot[0], index))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList());*/
     }
 
     //No tocar

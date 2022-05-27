@@ -13,7 +13,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,22 +32,39 @@ class SchedulerServiceTest {
     @Mock
     ProgramRepository repository;
 
-
+    private static final Logger log = LoggerFactory.getLogger(SchedulerServiceTest.class);
     @Test
         //TODO: modificar el test para que el act sea reactivo, usando stepverifier
     void generateCalendar() {
+
+        //Arrange
         var programId = "xxxx";
         var startDate = LocalDate.of(2022, 1, 1);
-
         Program program = getProgramDummy();
 
+        //Act
         Mockito.when(repository.findById(programId)).thenReturn(Mono.just(program));
         //TODO: hacer una subscripción de el servicio reactivo
-        List<ProgramDate> response = schedulerService.generateCalendar(programId, startDate);
+        Flux<ProgramDate> response = schedulerService.generateCalendar(programId, startDate);
+        response.subscribe(elemnt -> log.info("--- " + elemnt.getDate() + " ---"));
 
-        Assertions.assertEquals(13, response.size());//TODO: hacer de otro modo
-        Assertions.assertEquals(getSnapResult(), new Gson().toJson(response));//TODO: hacer de otro modo
-        Mockito.verify(repository).findById(programId);
+        //Assert
+        Assertions.assertEquals(13, response.count().block().intValue());//TODO: hacer de otro modo
+
+        StepVerifier.create(response)
+                .expectNextMatches(x ->x.getCategoryName().equals("Principios"))
+                .expectNextMatches(x -> x.getCategoryName().equals("Principios"))
+                .expectNextMatches( s -> s.getCategoryName().equals("Bases"))
+                .expectNextMatches( s -> s.getCategoryName().equals("Bases"))
+                .expectNextMatches( n -> n.getCategoryName().equals("Fundamentos"))
+                .expectNextMatches( n -> n.getCategoryName().equals("Fundamentos"))
+                .expectNextMatches( n -> n.getCategoryName().equals("Fundamentos"))
+                .expectNextMatches( n -> n.getCategoryName().equals("Fundamentos"))
+                .expectNextMatches(j -> j.getCategoryName().equals("Fundamentos avanzados"))
+                .expectNextMatches(j -> j.getCategoryName().equals("Fundamentos avanzados"))
+                .expectNextMatches(j -> j.getCategoryName().equals("Fundamentos avanzados"))
+                .expectNextMatches(j -> j.getCategoryName().equals("Fundamentos avanzados"))
+                .expectNextMatches(j -> j.getCategoryName().equals("Fundamentos avanzados"));
     }
 
     @Test
@@ -51,9 +72,14 @@ class SchedulerServiceTest {
         var programId = "xxxx";
         var startDate = LocalDate.of(2022, 1, 1);
 
+        Flux<ProgramDate> response = schedulerService.generateCalendar(programId, startDate);
+
         Mockito.when(repository.findById(programId)).thenReturn(Mono.empty());
 
         //TODO: hacer de otro modo
+
+        StepVerifier.create(response).expectError().notify();
+
         var exception = Assertions.assertThrows(RuntimeException.class, () -> {
             schedulerService.generateCalendar(programId, startDate);//TODO: hacer una subscripción de el servicio reactivo
 
