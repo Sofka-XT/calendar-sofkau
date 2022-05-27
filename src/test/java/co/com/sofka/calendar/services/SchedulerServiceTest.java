@@ -69,24 +69,19 @@ class SchedulerServiceTest {
 
     @Test
     void programNoFound() {
+
+        //Arrange
         var programId = "xxxx";
         var startDate = LocalDate.of(2022, 1, 1);
 
+        //Act
+        Mockito.when(repository.findById(programId)).thenReturn(Mono.empty());
         Flux<ProgramDate> response = schedulerService.generateCalendar(programId, startDate);
 
-        Mockito.when(repository.findById(programId)).thenReturn(Mono.empty());
-
-        //TODO: hacer de otro modo
-
-        StepVerifier.create(response).expectError().notify();
-
-        var exception = Assertions.assertThrows(RuntimeException.class, () -> {
-            schedulerService.generateCalendar(programId, startDate);//TODO: hacer una subscripción de el servicio reactivo
-
-        });
-        Assertions.assertEquals("El programa academnico no existe", exception.getMessage());//TODO: hacer de otro modo
+        //Assert
+        StepVerifier.create(response).verifyError(RuntimeException.class); //TODO: hacer de otro modo
+        StepVerifier.create(response).expectErrorMessage("El programa academic no existe"); //TODO: hacer de otro modo
         Mockito.verify(repository).findById(programId);
-
     }
 
     //no tocar
