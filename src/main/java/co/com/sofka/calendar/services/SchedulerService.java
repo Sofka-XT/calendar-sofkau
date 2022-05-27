@@ -24,7 +24,7 @@ public class SchedulerService {
     private ProgramRepository programRepository;
 
     //TODO: deben retornar un flux de programDate Flux<ProgramDate>
-    public List<ProgramDate> generateCalendar(String programId, LocalDate startDate) {
+    public Flux<ProgramDate> generateCalendar(String programId, LocalDate startDate) {
         var endDate = new AtomicReference<>(LocalDate.from(startDate));
         final AtomicInteger[] pivot = {new AtomicInteger()};
         final int[] index = {0};
